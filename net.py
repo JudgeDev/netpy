@@ -11,7 +11,7 @@ from matplotlib import cm # Colormaps
 # Allow matplotlib to plot inside this notebook
 #%matplotlib inline
 
-class Netpy:
+class pyNet1:
 	def __init__(self):
 		# Set the seed of the numpy random number generator so that
 		# the tutorial is reproducable
@@ -235,6 +235,8 @@ class Netpy:
 	def linear_regression(self):
 		"""
 		Linear regression using a very simple neural network.
+		
+		@TODO take out data specific (and model definition) parts and put in their own class
 		
 		The simplest neural network possible:
 		a 1 input 1 output linear regression model that has
@@ -767,9 +769,8 @@ class Netpy:
 		plt.xlabel('$x_1$', fontsize=15)
 		plt.ylabel('$x_2$', fontsize=15)
 		plt.title('red vs. blue classification boundary')
-		plt.show()
-		
-
+		plt.show()	
+	
 	def hidden_layer(self):
 		"""
 		Hidden layer.
@@ -1309,10 +1310,10 @@ class Netpy:
 
 
 if __name__ == '__main__':
-	print('Welcome to pynet')
-	net1 = Netpy()
+	print('Running pyNet1 as main')
+	net1 = pyNet1()
 	net1.linear_regression()
-	net2 = Netpy()
+	net2 = pyNet1()
 	net2.logistic_regression()
-	net3 = Netpy()
+	net3 = pyNet1()
 	net3.hidden_layer()
