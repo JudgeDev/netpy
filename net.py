@@ -1,4 +1,41 @@
-"""Neural net class in python."""
+"""Neural net class in python
+
+Notation - mathematics:
+Use space in math expressions: x^2 + 3 x - 17
+Superscripts: 2^6, e^3, (3 x)^2, x^(1 / 2)
+Subscripts with braces: lim_{x --> 0} sin (x) / x
+Division: (x - 6) / (x + 9), 1 / (3 x)
+Multiplication when ambiguity is possible: 4 * 3
+Function evaluations: sin (x)
+Standard abbreviations: sqrt (x), exp (x)
+Infinity: infinity or \infty (TeX code)
+Limits: lim_{x --> 3^+} 1 / (x - 3)
+Derivatives: f' (x), (d/dt) (a t^2 + b t)
+Integrals: \int_a^b f (x) dx
+
+Notation - neural networks:
+z is input / logit
+y is output / activation
+w is weight
+i is input, I is # of i's
+h is hidden layer, H is # of neurons in h
+o is ouput layer C is # classes in o
+d is data case, D is # of data cases
+t is target, T (=D) is # of targets
+
+Questions:
+How to represent layer - superscript/subscript?
+- superscript
+How to represent indices - superscript/subscript?
+- subscript
+Is weight in layer below or above?
+- below
+What is order of indices to get easy vectorisation?
+- layer above, layer below
+What is dimension of vectors to get easy vectorisation?
+- column (or row with transpose) for pre-multiplication by weights
+
+"""
 
 # Python imports
 
@@ -11,7 +48,7 @@ from matplotlib import cm # Colormaps
 # Allow matplotlib to plot inside this notebook
 #%matplotlib inline
 
-class pyNet1:
+class NetPy:
 	def __init__(self):
 		# Set the seed of the numpy random number generator so that
 		# the tutorial is reproducable
@@ -813,9 +850,9 @@ class pyNet1:
 		# Generate samples from both classes
 		x_blue = (np.random.randn(nb_of_samples_per_class, 1)
 			* std_dev + blue_mean)
-		x_red_left = (np.random.randn(nb_of_samples_per_class/2, 1)
+		x_red_left = (np.random.randn(nb_of_samples_per_class//2, 1)
 			* std_dev + red_left_mean)
-		x_red_right = (np.random.randn(nb_of_samples_per_class/2, 1)	
+		x_red_right = (np.random.randn(nb_of_samples_per_class//2, 1)	
 		 * std_dev + red_right_mean)
 		
 		# Merge samples in set of input variables x
