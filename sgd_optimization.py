@@ -29,13 +29,19 @@ class SgdOptimization:
 		self.n_epochs = n_epochs
 		self.batch_size = batch_size
 		
+		# store inputs and targets for training, validation and test
 		self.X, self.y = datasets[0]
-		self.valid_set_x, self.valid_set_y = datasets[1]
-		self.test_set_x, self.test_set_y = datasets[2]
+		self.Xv, self.yv = datasets[1]
+		self.Xt, self.yt = datasets[2]
 			
 		print('train inputs: {}'.format(self.X.shape))
 		print('train labels: {}'.format(self.y.shape))
+		print('validation inputs: {}'.format(self.Xv.shape))
+		print('validation labels: {}'.format(self.yv.shape))
+		print('test inputs: {}'.format(self.Xt.shape))
+		print('test labels: {}'.format(self.yt.shape))
 	
+		# number of minibatches for training, validation and test
 		self.n_train_batches = self.X.shape[0] // batch_size
 		self.n_valid_batches = self.valid_set_x.shape[0] // batch_size
 		self.n_test_batches = self.test_set_x.shape[0] // batch_size

@@ -11,22 +11,24 @@ class TorontoNet:
 	"""
 	def __init__(self,
 		# net parameters
-		n_hid):
+		n_in, n_hid, n_out):
 		"""Set up net
 		
 		Includes:
 			setting weight parameters
 		"""	 
 		print('Initializing TorontoNet')
+		self.n_in = n_in
+		self.n_out = n_out
+		print('number of input layers: {}'.format(n_in))
 		print('number of hidden layers: {}'.format(n_hid))
+		print('number of output layers: {}'.format(n_out))
+		# set up initial model
 		self.model = self.initial_model(n_hid)
 			
 	def optimization(self,
-		# datasets
-		datasets,
-		# learning parameters
+		datas,
 		n_iters, mini_batch_size, learning_rate, momentum_multiplier,
-		# regularization
 		wd_coefficient, do_early_stopping):
 		"""Train and optimize net
 		
@@ -44,29 +46,26 @@ class TorontoNet:
 			
 		"""
 		print('Optimizing TorontoNet')
-		# get data in correct form for this code
-		# dictionary to be indexed by dataset and inputs/targets
-		datas = defaultdict(dict)    
-		datas['training']['inputs'] = datasets[0][0].T
-		datas['training']['targets'] = datasets[0][1].T
-		datas['validation']['inputs'] = datasets[1][0].T
-		datas['validation']['targets'] = datasets[1][1].T
-		datas['test']['inputs'] = datasets[2][0].T
-		datas['test']['targets'] = datasets[2][1].T
 		
 		print('train inputs: {}'.format(datas['training']['inputs'].shape))
 		print('train labels: {}'.format(datas['training']['targets'].shape))
+		print('valdidation inputs: {}'.format(datas['validation']['inputs'].shape))
+		print('valdidation labels: {}'.format(datas['validation']['targets'].shape))
+		print('test inputs: {}'.format(datas['test']['inputs'].shape))
+		print('test labels: {}'.format(datas['test']['targets'].shape))
 		
 		n_training_cases = datas['training']['inputs'].shape[1]
 		print('number of training cases: {}'.format(n_training_cases))
 		
-		#if n_iters ~= 0, test_gradient(model, datas.training, wd_coefficient)
+		if n_iters != 0:
+			self.test_gradient(self.model, datas['training'], wd_coefficient)
 
 		theta = self.model_to_theta(self.model)
 		momentum_speed = theta * 0
 		training_data_losses = []
 		validation_data_losses = []
 		training_batch = {}  # dictionary for mini batch data
+		best_so_far = {}  # dict of best values
 		if do_early_stopping:
 			best_so_far['theta'] = -1  # this will be overwritten soon
 			best_so_far['validation_loss'] = np.inf
@@ -80,10 +79,8 @@ class TorontoNet:
 				n_training_cases)
 			training_batch['inputs'] = datas['training']['inputs'][:,
 				training_batch_start : training_batch_start + mini_batch_size]
-			training_batch['targets'] = datas['training']['targets'][
+			training_batch['targets'] = datas['training']['targets'][:,
 				training_batch_start : training_batch_start + mini_batch_size]
-			print('training batch number: {} has start: {}, shape: {}'.format(
-				optimization_iteration_i, training_batch_start, training_batch['inputs'].shape))
 			
 			gradient = self.model_to_theta(
 				self.d_loss_by_d_model(
@@ -94,25 +91,27 @@ class TorontoNet:
 			theta = theta + momentum_speed * learning_rate
 
 			model = self.theta_to_model(theta)
-			
-			training_data_losses.append(self.loss(model, datas['training'], wd_coefficient))
-			validation_data_losses.append(self.loss(model, datas['validation'], wd_coefficient))
-			
-			if do_early_stopping and validation_data_losses[-1] < best_so_far['validation_loss']:
-				best_so_far['theta'] = theta # this will be overwritten soon
-				best_so_far['validation_loss'] = validation_data_losses[-1]
-				best_so_far['after_n_iters'] = optimization_iteration_i
-				if (optimization_iteration_i % np.round(n_iters/10)) == 0:
-					print(
-					(
-						'After {} optimization iterations,'
-						' training data loss is {}, and'
-						' validation data loss is {}\n'
-					).format(
-						optimization_iteration_i,
-						training_data_losses[-1],
-						validation_data_losses[-1])
-					)
+				
+			if ((optimization_iteration_i + 1) % np.round(n_iters/10)) == 0:
+				# temp move from above if statement
+				# only tests losses every 1/10 number of iters
+				training_data_losses.append(self.loss(model, datas['training'], wd_coefficient))
+				validation_data_losses.append(self.loss(model, datas['validation'], wd_coefficient))
+				if do_early_stopping and validation_data_losses[-1] < best_so_far['validation_loss']:
+					best_so_far['theta'] = theta # this will be overwritten soon
+					best_so_far['validation_loss'] = validation_data_losses[-1]
+					best_so_far['after_n_iters'] = optimization_iteration_i + 1
+
+				print(
+				(
+					'After {} optimization iterations:\n'
+					'Training data loss is {:.5f}, and'
+					' validation data loss is {:.5f}\n'
+				).format(
+					optimization_iteration_i + 1,
+					training_data_losses[-1],
+					validation_data_losses[-1])
+				)
 				
 		#if n_iters ~= 0, test_gradient(model, datas.training, wd_coefficient); end # check again, this time with more typical parameters
 		if do_early_stopping:
@@ -121,65 +120,89 @@ class TorontoNet:
 					'Early stopping: validation loss was lowest'
 					'  after {} iterations. We chose the model that'
 					' we had then.\n'
-				).format(best_so_far.after_n_iters)
+				).format(best_so_far['after_n_iters'])
 			)
-			theta = best_so_far.theta
+			theta = best_so_far['theta']
 
 		# the optimization is finished. Now do some reporting.
 		model = self.theta_to_model(theta)
 		if n_iters != 0:
 			# Plot
-			NetPy().draw_graph('losses',
+			NetPy().draw_graph('Losses',
 				['$iteration number$', '$loss$'], 
 				[(range(len(training_data_losses)), training_data_losses, 'b', 'training'),
 				(range(len(validation_data_losses)), validation_data_losses, 'r', 'validation')],
 				grid=True, legend=True
 			)
-		"""
-		datas2 = {datas.training, datas.validation, datas.test};
-		data_names = {'training', 'validation', 'test'};
-		for data_i = 1:3,
-			data = datas2{data_i};
-			data_name = data_names{data_i};
-			fprintf('\nThe loss on the %s data is %f\n', data_name, loss(model, data, wd_coefficient));
-			if wd_coefficient~=0,
-				fprintf('The classification loss (i.e. without weight decay) on the %s data is %f\n', data_name, loss(model, data, 0));
-			fprintf('The classification error rate on the %s data is %f\n', data_name, classification_performance(model, data));
-		"""
+
+		for data_name, data_segment in datas.items():
+			loss_wd = self.loss(model, data_segment, wd_coefficient)
+			print('\nThe loss on the {} data is {:.5f}'.format(
+				data_name, loss_wd))
+			if wd_coefficient != 0:
+				loss = self.loss(model, data_segment, 0)
+				print(
+					(
+						'The classification loss (i.e. without weight'
+						' decay) on the {} data is {:.5f}'
+					).format(data_name, loss))
+			err = self.classification_performance(model, data_segment)
+			print(
+				(
+					'The classification error rate on the {} data'
+					' is {:.5f} ({:.2f}%)\n'
+				).format(data_name, err, (1 - err) * 100))
 
 	def test_gradient(self, model, data, wd_coefficient):
 		"""Check some gradient values
 		
-		# Test the gradient not for every element of theta,
+		Test the gradient not for every element of theta,
 		because that's a lot of work. Test for only a few elements.
 		"""
-		base_theta = model_to_theta(model)
+		base_theta = self.model_to_theta(model)
 		h = 1e-2
 		correctness_threshold = 1e-5
-		"""
-		#analytic_gradient = model_to_theta(d_loss_by_d_model(model, data, wd_coefficient));
-		for i = 1:100,
+		analytic_gradient = self.model_to_theta(self.d_loss_by_d_model(model, data, wd_coefficient));
+		for i in range(10):
 			# 1299721 is prime and thus ensures a somewhat random-like
 			# selection of indices
-			test_index = (i * 1299721 # base_theta.size) + 1
-			# @TODO finish this function
-			analytic_here = analytic_gradient(test_index);
-			theta_step = base_theta * 0;
-			theta_step(test_index) = h;
-			contribution_distances = [-4:-1, 1:4];
-			contribution_weights = [1/280, -4/105, 1/5, -4/5, 4/5, -1/5, 4/105, -1/280];
+			test_index = ((i+1) * 1299721 % base_theta.size)
+			print('Gradient check: test index {}'.format(test_index))
+			analytic_here = analytic_gradient[test_index]
+			theta_step = base_theta * 0
+			theta_step[test_index] = h
+			contribution_distances = [-4, -3, -2, -1, 1, 2, 3, 4]
+			contribution_weights = [
+				1/280, -4/105, 1/5, -4/5, 4/5, -1/5, 4/105, -1/280]
 			temp = 0;
-			for contribution_index = 1:8,
-			  temp = temp + loss(theta_to_model(base_theta + theta_step * contribution_distances(contribution_index)), data, wd_coefficient) * contribution_weights(contribution_index);
-			end
-			fd_here = temp / h;
-			diff = abs(analytic_here - fd_here);
+			for distance, weight in zip(contribution_distances,
+				contribution_weights):
+				temp += self.loss(self.theta_to_model(
+					base_theta + theta_step * distance),
+					data, wd_coefficient) * weight
+			fd_here = temp / h
+			diff = abs(analytic_here - fd_here)
 			# fprintf('%d %e %e %e %e\n', test_index, base_theta(test_index), diff, fd_here, analytic_here);
-			if diff < correctness_threshold, continue; end
-			if diff / (abs(analytic_here) + abs(fd_here)) < correctness_threshold, continue; end
-			error(sprintf('Theta element #%d, with value %e, has finite difference gradient %e but analytic gradient %e. That looks like an error.\n', test_index, base_theta(test_index), fd_here, analytic_here));
-		#fprintf('Gradient test passed. That means that the gradient that your code computed is within 0.001%% of the gradient that the finite difference approximation computed, so the gradient calculation procedure is probably correct (not certainly, but probably).\n');
-	"""
+			if diff < correctness_threshold: continue
+			if diff / (abs(analytic_here) + abs(fd_here)) < correctness_threshold: continue
+			raise Exception(
+				(
+					'Theta element {}, with value {},'
+					' has finite difference gradient {}'
+					' but analytic gradient {}.'
+					' That looks like an error.\n'
+				).format(test_index, base_theta[test_index],
+					fd_here, analytic_here)
+			)
+		print(
+			(
+				'Gradient test passed. That means that the gradient'
+				' that your code computed is within 0.001%% of'
+				' the gradient that the finite difference approximation'
+				' computed, so the gradient calculation procedure'
+				' is probably correct (not certainly, but probably).\n'
+			)
+		)
 
 	def log_sum_exp_over_rows(self, a):
 		"""Compute log(sum(exp(a), 1)) in a numerically stable way
@@ -442,11 +465,9 @@ class TorontoNet:
 		Returns:
 			dict: dictionary of model parameter matrices
 		"""
-		n_in = 784
-		n_out = 10
-		n_hid = theta.size // (n_in + n_out)
-		input_to_hid = theta[:n_in*n_hid].reshape(n_hid, -1)
-		hid_to_class = theta[n_in*n_hid : theta.size].reshape(n_out, -1)
+		n_hid = theta.size // (self.n_in + self.n_out)
+		input_to_hid = theta[:self.n_in*n_hid].reshape(n_hid, self.n_in)
+		hid_to_class = theta[self.n_in*n_hid : theta.size].reshape(self.n_out, n_hid)
 		return {'input_to_hid': input_to_hid,
 			'hid_to_class' : hid_to_class}
 	
@@ -461,23 +482,31 @@ class TorontoNet:
 		
 		Fixed initialization to get reproducible results
 		"""
-		n_in = 784
-		n_out = 10
-		n_params = (n_in + n_out) * n_hid
+		n_params = (self.n_in + self.n_out) * n_hid
 		as_row_vector = np.cos(np.arange(n_params))
 		return self.theta_to_model(as_row_vector * 0.1)
-	"""
-function ret = classification_performance(model, data)
-  # This returns the fraction of data cases that is incorrectly classified by the model.
-  hid_input = model.input_to_hid * data.inputs; # input to the hidden units, i.e. before the logistic. size: <number of hidden units> by <number of data cases>
-  hid_output = logistic(hid_input); # output of the hidden units, i.e. after the logistic. size: <number of hidden units> by <number of data cases>
-  class_input = model.hid_to_class * hid_output; # input to the components of the softmax. size: <number of classes, i.e. 10> by <number of data cases>
-  
-  [dump, choices] = max(class_input); # choices is integer: the chosen class, plus 1.
-  [dump, targets] = max(data.targets); # targets is integer: the target class, plus 1.
-  ret = mean(double(choices ~= targets));
-end
-	"""
+	
+	def classification_performance(self, model, data):
+		"""Determine incorrectly classified cases
+		
+		Args:
+			model (dict): dictionary of layer weight matrices
+			data (dict): training inputs		
+		Returns:
+			float: fraction of data cases that is
+				incorrectly classified by the model
+		"""
+		hid_input = model['input_to_hid'].dot(data['inputs'])
+		hid_output = NetPy().logistic(hid_input)
+		class_input = model['hid_to_class'].dot(hid_output)
+
+		# max index in col is the chosen class, plus 1
+		choices = np.argmax(class_input, axis=0);
+		# max index in targets is integer: the target class, plus 1.
+		targets = np.argmax(data['targets'], axis=0)
+		
+		# get mean of incorret values
+		return np.mean((choices != targets).astype(int))
 	
 	def test(self):
 		"""Gash test method"""
