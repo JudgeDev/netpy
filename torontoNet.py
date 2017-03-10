@@ -57,8 +57,8 @@ class TorontoNet:
 		n_training_cases = datas['training']['inputs'].shape[1]
 		print('number of training cases: {}'.format(n_training_cases))
 		
-		if n_iters != 0:
-			self.test_gradient(self.model, datas['training'], wd_coefficient)
+		#if n_iters != 0:
+			#self.test_gradient(self.model, datas['training'], wd_coefficient)
 
 		theta = self.model_to_theta(self.model)
 		momentum_speed = theta * 0

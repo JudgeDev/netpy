@@ -14,14 +14,27 @@ Derivatives: f' (x), (d/dt) (a t^2 + b t)
 Integrals: \int_a^b f (x) dx
 
 Notation - neural networks:
-z is input / logit
-y is output / activation
-w is weight
-i is input, I is # of i's
-h is hidden layer, H is # of neurons in h
-o is ouput layer C is # classes in o
-d is data case, D is # of data cases
-t is target, T (=D) is # of targets
+z: input / logit
+y: output / activation
+w: weight
+i: input
+D: number of input dimensions
+h: hidden layer
+D^i_h: number of hidden units in i-th layer
+o: ouput layer
+L: number of labels
+d: data case, m is # of data cases
+t: target, T (=D) is # of targets
+
+theta = (W,b) = Wb: set of all parameters for a given model
+
+f_Wb(x) or f(x): classification function associated with a model (Wb/theta)
+	P(Y|x,Wb), defined as argmax_kP(Y=k|x,Wb)
+L(Wb, D): log-likelihood D of the model defined by parameters Wb/theta
+l(Wb, D): empiracal loss of the prediction function f,
+	parameterized by Wb on data set D
+NLL: negative log-likelihood
+
 
 Questions:
 How to represent layer - superscript/subscript?
