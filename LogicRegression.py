@@ -24,8 +24,12 @@ Christopher M. Bishop, section 4.3.2
 """
 __docformat__ = 'restructedtext en'
 
+import numpy as np
+
 import theano
 import theano.tensor as T
+import theano.sandbox.cuda
+#theano.sandbox.cuda.use('gpu0')
 
 class LogisticRegression (object):
 	"""Multi-class Logistic Regression Class
@@ -54,7 +58,7 @@ class LogisticRegression (object):
 		# but also initializes their contents.
 		# initialize with 0 the weights W as a matrix of shape (n_in, n_out)
 		self.W = theano.shared(
-			value=numpy.zeros(
+			value=np.zeros(
 				(n_in, n_out),
 				dtype=theano.config.floatX
 			),
@@ -63,7 +67,7 @@ class LogisticRegression (object):
 		)
 		# initialize the biases b as a vector of n_out 0s
 		self.b = theano.shared(
-			value=numpy.zeros(
+			value=np.zeros(
 				(n_out,),
 				dtype=theano.config.floatX
 			),

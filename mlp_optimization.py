@@ -9,19 +9,22 @@ import theano.tensor as T
 import theano.sandbox.cuda
 #theano.sandbox.cuda.use('gpu0')
 
-import LogicRegression as lr
+import MLP
 
-class SgdOptimization:
-	"""SGD optimization of a log-linear model
+class MlpOptimization:
+	"""SGD optimization for multilayer perceptron
 		
 	This is demonstrated on MNIST
 	"""	
 	
 	def __init__(self,
 			datasets,
-			learning_rate=0.13,
+			learning_rate=0.01,
+			L1_reg=0.00,
+			L2_reg=0.001,
 			n_epochs=1000,
-			batch_size=1000):
+			batch_size=1000,
+			n_hidden=500):
 		
 		"""Initialise optimisation
 		
@@ -32,13 +35,19 @@ class SgdOptimization:
 				targets, presented as m 1D vectors of [int] labels
 			learning_rate (float): learning rate used
 				(factor for the stochastic gradient)
+			L1_reg (float): L1-norm’s weight when added to the cost
+			L2_reg (float): L2-norm’s weight when added to the cost
 			n_epochs (int): max number of epochs to run the optimizer
-
+			n_hidden (int): number of hidden units
+		 
 		"""
 		
 		self.learning_rate = learning_rate
+		self.L1_reg = L1_reg
+		self.L2_reg = L2_reg
 		self.n_epochs = n_epochs
 		self.batch_size = batch_size
+		self.n_hidden = n_hidden
 
 		# store inputs and targets for training, validation and test
 		# calls shared_datasets to store them as shared variables
@@ -116,15 +125,22 @@ class SgdOptimization:
 		x = T.matrix('x')
 		y = T.ivector('y')
 		
-		# construct the logistic regression class
+		rng = np.random.RandomState(1234)
+		
+		# construct the MPY class
 		# Each MNIST image has size 28*28
 		# x is outside LogisticRegression class and needs to be passed
-		self.classifier = lr.LogisticRegression(input=x, n_in=28 * 28, n_out=10)
+		self.classifier = MLP.MLP(rng=rng, input=x,
+		n_in=28 * 28, n_out=10, n_hidden=self.n_hidden)
 		
 		# cost to be minimised
 		# negative log likelihood of the model in symbolic format
 		# x is an implicit symbolic input because it was defined at init
-		cost = self.classifier.negative_log_likelihood(y)
+		cost = (
+					self.classifier.negative_log_likelihood(y)
+					+ self.L1_reg * self.classifier.L1
+					+ self.L2_reg * self.classifier.L2_sqr
+			)
 		
 		# compiling a Theano function that computes the mistakes
 		# that are made by the model on a minibatch
@@ -145,18 +161,20 @@ class SgdOptimization:
 		    }
 		)
 			
-		# automatic differentiation to compute the gradient of
-		# cost with respect to theta = (W,b), dl/dW and dl/db
-		g_W = T.grad(cost=cost, wrt=self.classifier.W)
-		g_b = T.grad(cost=cost, wrt=self.classifier.b)
+		# compute the gradient of cost with respect to theta (stored in params)
+		# the resulting gradients will be stored in a list gparams
+		gparams = [T.grad(cost, param) for param in self.classifier.params]
 		
-		# start-snippet-3
-		# specify how to update the parameters of the model
-		# updates is list of paris:
-		# first element is symbolic variable to be updated
-		# second element is symbolic function for calculating its new value
-		updates = [(self.classifier.W, self.classifier.W - self.learning_rate * g_W),
-		           (self.classifier.b, self.classifier.b - self.learning_rate * g_b)]
+		# specify how to update the parameters of the model as a list of
+		# (variable, update expression) pairs
+		# given two lists of the same length, A = [a1, a2, a3, a4] and
+		# B = [b1, b2, b3, b4], zip generates a list C of same size, where each
+		# element is a pair formed from the two lists :
+		#    C = [(a1, b1), (a2, b2), (a3, b3), (a4, b4)]
+		updates = [
+			(param, param - self.learning_rate * gparam)
+			for param, gparam in zip(self.classifier.params, gparams)
+		]
 		
 		# compiling a Theano function ‘train_model‘
 		# input is mini-batch index --> X and y
@@ -182,7 +200,6 @@ class SgdOptimization:
 		        y: self.y_train[mb_start: mb_end]
 		    }
 		)
-		# end-snippet-3
 	
 	def train(self):
 		"""Train model
@@ -192,7 +209,7 @@ class SgdOptimization:
 		
 		# early-stopping parameters
 		# look at this many examples regardless
-		patience = 5000
+		patience = 10000
 		# wait this much longer when a new best is found
 		patience_increase = 2
 		# a relative improvement of this much is considered significant
@@ -203,6 +220,8 @@ class SgdOptimization:
 		# in this case we check every epoch
 		validation_frequency = min(self.n_train_batches, patience / 2)
 		best_validation_loss = np.inf
+		# @TODO put this in SGD optimization and compare with Toronto
+		best_iter = 0
 		test_score = 0.
 		start_time = timeit.default_timer()
 		done_looping = False
@@ -234,7 +253,8 @@ class SgdOptimization:
 						if this_validation_loss < best_validation_loss * \
 							improvement_threshold:
 							patience = max(patience, iter * patience_increase)
-						best_validation_loss = this_validation_loss 
+						best_validation_loss = this_validation_loss
+						best_iter = iter
 						# test it on the test set
 						test_losses = [self.test_model(i)
 							for i in range(self.n_test_batches)]
@@ -249,8 +269,8 @@ class SgdOptimization:
 							)
 						)
 						# save the best model
-						with open('best_model.pkl', 'wb') as f:
-							pickle.dump(self.classifier, f)
+						#with open('best_model.pkl', 'wb') as f:
+							#pickle.dump(self.classifier, f)
 		
 					if patience <= iter:
 						done_looping = True
@@ -259,10 +279,12 @@ class SgdOptimization:
 		end_time = timeit.default_timer()
 		print(
 			(
-				'Optimization complete with best validation score'
-				' of {:.5f}, with test performance {:.5f}'
+				'Optimization complete:\n'
+				'Best best validation score of {:.5f}\n'
+				'Obtained at iteration {}\n'
+				'With test performance {:.5f}'
 			).format(
-				best_validation_loss * 100., test_score * 100.
+				best_validation_loss * 100., best_iter, test_score * 100.
 			)
 		)
 		

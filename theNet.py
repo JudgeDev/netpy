@@ -1,3 +1,5 @@
+import sys
+print(sys.path)
 import os
 from collections import defaultdict
 
@@ -5,9 +7,10 @@ import numpy as np
 from scipy.io import loadmat
 
 from mnist import Mnist
-from sgd_optimization import SgdOptimization
 from net import NetPy
 from torontoNet import TorontoNet
+from sgd_optimization import SgdOptimization
+from mlp_optimization import MlpOptimization
 
 if __name__ == '__main__':
 
@@ -22,8 +25,6 @@ if __name__ == '__main__':
 		for device in devices:
 			print(device.fn, device.name, device.phys)
 	"""	
-	
-	
 	print('Running theNet as main')
 	
 	batch_size = 600
@@ -63,7 +64,7 @@ if __name__ == '__main__':
 	sel = np.random.permutation(m)
 	# select 100
 	sel = sel[:100]	
-	dataset.displayData(X[sel, :])
+	#dataset.displayData(X[sel, :])
 	
 	"""
 	# USPS data
@@ -83,25 +84,31 @@ if __name__ == '__main__':
 	"""
 
 
-		
+	# TorontoNet test
 	# instantiate TorontoNet
 	# constructor needs:
 	# net parameters: #input units, #hidden units, #output units
-	tNet = TorontoNet(784, 37, 10)
+	#tNet = TorontoNet(784, 37, 10)
 	# optimize net, needs: datasets,
 	# learning parameters: # iterations, minibatch size,
 	# 	learning rate, momentum multiplier
 	# regularization: weight decay coefficient, early stopping flag
-	tNet.optimization(datas, 1000, 100, 0.35, 0.9, 0, True)
+	#tNet.optimization(datas, 1000, 100, 0.35, 0.9, 0, True)
 	
-
-
-	
-	
-	
-	# instantiate Optimization
+	# Logistic regression test
+	# instantiate sgd Optimization
 	#opt = SgdOptimization(datasets)
+	#opt.build()
 	#opt.train()
 
-	#net = pyNet1()
+	# Multilayer Perceptron test
+	# instantiate mpl Optimization
+	# constructor needs datasets, and has default values of:
+	# learning_rate=0.01, L1_reg=0.00, L2_reg=0.001, n_epochs=1000,
+	# batch_size=1000, n_hidden=500
+	
+	mlp = MlpOptimization(datasets)
+	mlp.build()
+	mlp.train()
+
 	
