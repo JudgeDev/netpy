@@ -230,7 +230,7 @@ class MlpOptimization:
 		while (epoch < self.n_epochs) and (not done_looping):
 			epoch += 1
 			for minibatch_index in range(self.n_train_batches):
-				minibatch_avg_cost = self, self.train_model(minibatch_index)
+				minibatch_avg_cost = self.train_model(minibatch_index)
 				# iteration number
 				iter = (epoch - 1) * self.n_train_batches + minibatch_index
 				if (iter + 1) % validation_frequency == 0:
@@ -240,13 +240,16 @@ class MlpOptimization:
 					this_validation_loss = np.mean(validation_losses)
 					print(
 						(
-							'epoch {}, minibatch {}/{},'
-							' validation error {:.5f}%'
+							'\nAfter {} epochs, {} iterations:\n'
+							'Training loss is {:.5f}, and'
+							'validation data loss is {:.5f}'
 						).format(
-							epoch, minibatch_index + 1, self.n_train_batches,
+							epoch, iter + 1,
+							float(minibatch_avg_cost),
 							this_validation_loss * 100.
 						)
 					)
+
 					# if we got the best validation score until now
 					if this_validation_loss < best_validation_loss:
 						# improve patience if loss improvement is good enough
@@ -261,12 +264,8 @@ class MlpOptimization:
 						test_score = np.mean(test_losses)
 						print(
 							(
-								'epoch {}, minibatch {}/{},'
-								' test error of best model {:.5f}%'
-							).format(
-								epoch, minibatch_index + 1,
-								self.n_train_batches, test_score * 100.
-							)
+								'Test error of best model {:.5f}%'
+							).format(test_score * 100.)
 						)
 						# save the best model
 						#with open('best_model.pkl', 'wb') as f:
@@ -288,7 +287,13 @@ class MlpOptimization:
 			)
 		)
 		
-		print('The code run for {} epochs, with {:.5f} epochs/sec'.format(
-			epoch, 1. * epoch / (end_time - start_time)))
+		print(
+			(
+				'The code run for {} iterations,'
+				' with {:.5f} iterations/sec'
+			).format(
+				iter, (iter + 1) / (end_time - start_time)
+			)
+		)
 		
 		

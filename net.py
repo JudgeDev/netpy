@@ -35,6 +35,9 @@ l(Wb, D): empiracal loss of the prediction function f,
 	parameterized by Wb on data set D
 NLL: negative log-likelihood
 
+floats [0,1] = {x e R | 0 <= x <= 1}
+integers [0 .. 9] = {0, 1 .. 9}
+
 
 Questions:
 How to represent layer - superscript/subscript?

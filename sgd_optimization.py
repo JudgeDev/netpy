@@ -211,7 +211,7 @@ class SgdOptimization:
 		while (epoch < self.n_epochs) and (not done_looping):
 			epoch += 1
 			for minibatch_index in range(self.n_train_batches):
-				minibatch_avg_cost = self, self.train_model(minibatch_index)
+				minibatch_avg_cost = self.train_model(minibatch_index)
 				# iteration number
 				iter = (epoch - 1) * self.n_train_batches + minibatch_index
 				if (iter + 1) % validation_frequency == 0:
@@ -219,6 +219,15 @@ class SgdOptimization:
 					validation_losses = [self.validate_model(i)
 						for i in range(self.n_valid_batches)]
 					this_validation_loss = np.mean(validation_losses)
+					print(
+						(
+							'epoch {}, minibatch {}/{},'
+							' training loss {}'
+						).format(
+							epoch, minibatch_index + 1, self.n_train_batches,
+							minibatch_avg_cost
+						)
+					)
 					print(
 						(
 							'epoch {}, minibatch {}/{},'

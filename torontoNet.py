@@ -1,4 +1,5 @@
 import math
+import timeit
 from collections import defaultdict
 
 import numpy as np
@@ -70,6 +71,8 @@ class TorontoNet:
 			best_so_far['theta'] = -1  # this will be overwritten soon
 			best_so_far['validation_loss'] = np.inf
 			best_so_far['after_n_iters'] = -1
+			start_time = timeit.default_timer()
+
 		for optimization_iteration_i in range(n_iters):
 			
 			model = self.theta_to_model(theta)
@@ -112,7 +115,11 @@ class TorontoNet:
 					training_data_losses[-1],
 					validation_data_losses[-1])
 				)
-				
+
+		# the optimization is finished. Now do some reporting.
+		end_time = timeit.default_timer()
+		print('Optimization complete:\n')
+		
 		#if n_iters ~= 0, test_gradient(model, datas.training, wd_coefficient); end # check again, this time with more typical parameters
 		if do_early_stopping:
 			print(
@@ -124,7 +131,6 @@ class TorontoNet:
 			)
 			theta = best_so_far['theta']
 
-		# the optimization is finished. Now do some reporting.
 		model = self.theta_to_model(theta)
 		if n_iters != 0:
 			# Plot
@@ -152,6 +158,15 @@ class TorontoNet:
 					'The classification error rate on the {} data'
 					' is {:.5f} ({:.2f}%)\n'
 				).format(data_name, err, (1 - err) * 100))
+		
+		print(
+			(
+				'The code run for {} iterations,'
+				' with {:.1f} iterations/sec\n'
+			).format(
+			optimization_iteration_i + 1,
+			(optimization_iteration_i + 1) / (end_time - start_time)))
+
 
 	def test_gradient(self, model, data, wd_coefficient):
 		"""Check some gradient values
@@ -507,15 +522,4 @@ class TorontoNet:
 		
 		# get mean of incorret values
 		return np.mean((choices != targets).astype(int))
-	
-	def test(self):
-		"""Gash test method"""
-		for weight_matrix, value in self.model.items():
-			print('Matrix: {}, shape: {}, values {}'.format(
-				weight_matrix, value.shape, value))
-		theta = self.model_to_theta(self.model)
-		print(theta)
-		model = self.theta_to_model(theta)
-		for weight_matrix, value in self.model.items():
-			print('Matrix: {}, shape: {}, values {}'.format(
-				weight_matrix, value.shape, value))
+

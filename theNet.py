@@ -1,10 +1,13 @@
 import sys
-print(sys.path)
+#print(sys.path)
 import os
 from collections import defaultdict
 
 import numpy as np
 from scipy.io import loadmat
+
+import theano.sandbox.cuda
+#theano.sandbox.cuda.use('gpu0')
 
 from mnist import Mnist
 from net import NetPy
@@ -27,38 +30,46 @@ if __name__ == '__main__':
 	"""	
 	print('Running theNet as main')
 	
-	batch_size = 600
+	# general parameters for comparison
+	# network
+	D = 28 * 28  # number of input dimensions for MNIST
+	H = 37  # number of hidden units
+	L = 10  # number of labels for digit classification
+	# learning
+	mb = 100   # mini batch size
+	lda = 0.35  # learning rate lambda
+	iters = 1000  # number of iterations
+	
 	
 	# instanciate mnist dataset
-	dataset = Mnist()
+	mnist = Mnist()
 	# load date from the path of the MNIST dataset file from:
 	#	http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz
-	dataset.load_data('mnist.pkl.gz')
-	datasets = dataset.get_datasets()
+	mnist.load_data('mnist.pkl.gz')
+	# get train, validation and test data sets
+	# each set is a tuple(input, target):
+	# input: numpy.ndarray - X_D,m of pixel values [0,1]
+	# target: numpy.ndarray - y_m of labels [0 .. 9]
+	datasets = mnist.get_datasets()
 
-	X, y = datasets[0]
-	valid_set_x, valid_set_y = datasets[1]
-	test_set_x, test_set_y = datasets[2]
+	print(datasets[0][0].shape)
+	print(datasets[0][1].shape)
+	m = datasets[0][0].shape[0]
+	print('Number of training cases in dataset: {}'.format(m))
 	
-	# convert from MNIST to TorontoNet
+	# convert data for TorontoNet
+	# convert to dictionaries
 	# dict of dicts of matrices_m,inputs/outputs
 	# convert y_m,1 labels into yv_m,10 vectors using lookup
 	lookup = np.eye(10)
-	datas = defaultdict(dict)    
-	datas['training']['inputs'] = datasets[0][0].T
-	datas['training']['targets'] = lookup[datasets[0][1], :].T
-	datas['validation']['inputs'] = datasets[1][0].T
-	datas['validation']['targets'] = lookup[datasets[1][1], :].T
-	datas['test']['inputs'] = datasets[2][0].T
-	datas['test']['targets'] = lookup[datasets[2][1], :].T
+	t_datas = defaultdict(dict)    
+	t_datas['training']['inputs'] = datasets[0][0].T
+	t_datas['training']['targets'] = lookup[datasets[0][1], :].T
+	t_datas['validation']['inputs'] = datasets[1][0].T
+	t_datas['validation']['targets'] = lookup[datasets[1][1], :].T
+	t_datas['test']['inputs'] = datasets[2][0].T
+	t_datas['test']['targets'] = lookup[datasets[2][1], :].T
 
-	n_train_batches = X.shape[0] // batch_size
-	n_valid_batches = valid_set_x.shape[0] // batch_size
-	n_test_batches = test_set_x.shape[0] // batch_size
-	
-	# number of training cases
-	m = X.shape[0]
-	
 	# randomly select 100 data points to display
 	# random permutation of training cases
 	sel = np.random.permutation(m)
@@ -83,21 +94,20 @@ if __name__ == '__main__':
 	
 	"""
 
-
 	# TorontoNet test
 	# instantiate TorontoNet
 	# constructor needs:
 	# net parameters: #input units, #hidden units, #output units
-	#tNet = TorontoNet(784, 37, 10)
+	tNet = TorontoNet(D, H, L)
 	# optimize net, needs: datasets,
 	# learning parameters: # iterations, minibatch size,
 	# 	learning rate, momentum multiplier
 	# regularization: weight decay coefficient, early stopping flag
-	#tNet.optimization(datas, 1000, 100, 0.35, 0.9, 0, True)
+	tNet.optimization(t_datas, iters, mb, lda, 0.9, 0, True)
 	
 	# Logistic regression test
 	# instantiate sgd Optimization
-	#opt = SgdOptimization(datasets)
+	#opt = SgdOptimization(datasets, lda, iters, mb)
 	#opt.build()
 	#opt.train()
 
@@ -105,9 +115,9 @@ if __name__ == '__main__':
 	# instantiate mpl Optimization
 	# constructor needs datasets, and has default values of:
 	# learning_rate=0.01, L1_reg=0.00, L2_reg=0.001, n_epochs=1000,
-	# batch_size=1000, n_hidden=500
-	
-	mlp = MlpOptimization(datasets)
+	# batch_size=1000, n_hidden=37
+
+	mlp = MlpOptimization(datasets, lda, 0.00, 0.00, iters, mb, H)
 	mlp.build()
 	mlp.train()
 

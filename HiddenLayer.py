@@ -1,6 +1,8 @@
 import numpy as np
 import theano
 import theano.tensor as T
+import theano.sandbox.cuda
+#theano.sandbox.cuda.use('gpu0')
 
 class HiddenLayer(object):
 	
