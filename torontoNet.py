@@ -95,7 +95,7 @@ class TorontoNet:
 
 			model = self.theta_to_model(theta)
 				
-			if ((optimization_iteration_i + 1) % np.round(n_iters/10)) == 0:
+			if ((optimization_iteration_i + 1) % np.round(n_iters/100)) == 0:
 				# temp move from above if statement
 				# only tests losses every 1/10 number of iters
 				training_data_losses.append(self.loss(model, datas['training'], wd_coefficient))

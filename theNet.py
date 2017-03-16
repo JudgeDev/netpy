@@ -1,6 +1,7 @@
+import os
+os.environ['THEANO_FLAGS']= 'mode=FAST_RUN,device=gpu,floatX=float32'
 import sys
 #print(sys.path)
-import os
 from collections import defaultdict
 
 import numpy as np
@@ -103,7 +104,7 @@ if __name__ == '__main__':
 	# learning parameters: # iterations, minibatch size,
 	# 	learning rate, momentum multiplier
 	# regularization: weight decay coefficient, early stopping flag
-	tNet.optimization(t_datas, iters, mb, lda, 0.9, 0, True)
+	tNet.optimization(t_datas, 10 * iters, mb, lda, 0.9, 0, True)
 	
 	# Logistic regression test
 	# instantiate sgd Optimization

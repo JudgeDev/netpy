@@ -242,7 +242,7 @@ class MlpOptimization:
 						(
 							'\nAfter {} epochs, {} iterations:\n'
 							'Training loss is {:.5f}, and'
-							'validation data loss is {:.5f}'
+							' validation data loss is {:.5f}'
 						).format(
 							epoch, iter + 1,
 							float(minibatch_avg_cost),
@@ -290,7 +290,7 @@ class MlpOptimization:
 		print(
 			(
 				'The code run for {} iterations,'
-				' with {:.5f} iterations/sec'
+				' with {:.0f} iterations/sec'
 			).format(
 				iter, (iter + 1) / (end_time - start_time)
 			)
